@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Campus Nest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .verification-status {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .status-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .status-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .status-verified {
+            color: #28a745;
+        }
+
+        .status-pending {
+            color: #ffc107;
+        }
+
+        .status-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .text-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .text-link:hover {
+            color: #764ba2;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .code-input {
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 4px;
+            font-weight: bold;
+        }
+
+        .verification-form {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e8ed;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Registration Page -->
+    <div class="page active" id="registerPage">
+        <h1>Create Account</h1>
+        <div id="registerAlert"></div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="fullName" required placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" required placeholder="Enter your email">
+            </div>
+
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" name="phone" required placeholder="Enter your phone number">
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required placeholder="Create a password">
+            </div>
+
+            <div class="form-group">
+                <label>Account Type</label>
+                <select name="role" required>
+                    <option value="">Select your role</option>
+                    <option value="STUDENT">Student</option>
+                    <option value="LANDLORD">Landlord</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" id="registerBtn">Create Account</button>
+
+            <div class="text-center" style="margin-top: 20px;">
+                Already have an account? <span class="text-link" onclick="window.location.href='/auth/login'">Sign In</span>
+            </div>
+        </form>
+    </div>
+
+    <!-- Verification Page -->
+    <div class="page" id="verificationPage">
+        <h1>Verify Your Account</h1>
+        <div id="verificationAlert"></div>
+
+        <div class="alert alert-info">
+            We've sent a verification code to your email address. Please enter it below to activate your account.
+        </div>
+
+        <div class="verification-status">
+            <div class="status-item">
+                <span class="status-icon status-pending" id="emailStatusIcon">📧</span>
+                <div class="status-text">Email</div>
+                <div class="status-text" id="emailStatus">Pending</div>
+            </div>
+        </div>
+
+        <div class="verification-form">
+            <form id="verifyEmailForm">
+                <div class="form-group">
+                    <label>Email Verification Code</label>
+                    <input type="text" name="emailCode" class="code-input" maxlength="6" placeholder="000000" pattern="[0-9]{6}" required>
+                    <input type="hidden" name="userId" id="verifyUserId">
+                </div>
+                <button type="submit" class="btn" id="verifyEmailBtn">Verify Email</button>
+                <button type="button" class="btn btn-secondary" onclick="resendCode('email')" id="resendEmailBtn">Resend Email Code</button>
+            </form>
+        </div>
+
+        <div class="loading" id="verificationLoading">
+            <span class="spinner"></span>Processing verification...
+        </div>
+    </div>
+
+    <!-- Success Page -->
+    <div class="page" id="successPage">
+        <h1>🎉 Verification Complete!</h1>
+        <div class="alert alert-success">
+            Your account has been successfully verified. You can now sign in to Campus Nest.
+        </div>
+        <button class="btn" onclick="window.location.href='/auth/login'">Continue to Sign In</button>
+    </div>
+</div>
+
+<script>
+    let currentUserId = null;
+
+    // Registration form handler
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const form = e.target;
+        const registerBtn = document.getElementById('registerBtn');
+        const alertDiv = document.getElementById('registerAlert');
+
+        // Disable button and show loading
+        registerBtn.disabled = true;
+        registerBtn.innerHTML = '<span class="spinner"></span>Creating Account...';
+
+        const body = {
+            fullName: form.fullName.value,
+            email: form.email.value,
+            phone: form.phone.value,
+            password: form.password.value,
+            role: form.role.value
+        };
+
+        try {
+            const response = await fetch('/api/v1/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                // Registration successful, show verification page
+                currentUserId = result.data.userId;
+                document.getElementById('verifyUserId').value = currentUserId;
+
+                showAlert('registerAlert', 'success', result.message);
+
+                // Switch to verification page after short delay
+                setTimeout(() => {
+                    showPage('verificationPage');
+                }, 1500);
+
+            } else {
+                showAlert('registerAlert', 'error', result.message || 'Registration failed');
+            }
+        } catch (err) {
+            console.error('Registration error:', err);
+            showAlert('registerAlert', 'error', 'Network error. Please try again.');
+        } finally {
+            // Re-enable button
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = 'Create Account';
+        }
+    });
+
+    // Phone verification form handler - removed since phone is optional
+    // Email verification form handler
+    document.getElementById('verifyEmailForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const form = e.target;
+        const code = form.emailCode.value;
+        const userId = form.userId.value;
+
+        if (!userId) {
+            showAlert('verificationAlert', 'error', 'Invalid session. Please register again.');
+            return;
+        }
+
+        await verifyCode('email', code, userId);
+    });
+
+    async function verifyCode(type, code, userId) {
+        const loadingDiv = document.getElementById('verificationLoading');
+        const btnId = type === 'email' ? 'verifyEmailBtn' : 'verifyPhoneBtn';
+        const btn = document.getElementById(btnId);
+
+        loadingDiv.style.display = 'block';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/v1/auth/verify/${type}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    code: code
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showAlert('verificationAlert', 'success', result.message);
+
+                // Update verification status
+                updateVerificationStatus(result.data);
+
+                // Clear the form
+                document.querySelector(`#verify${type.charAt(0).toUpperCase() + type.slice(1)}Form input[name="${type}Code"]`).value = '';
+
+                // Check if all verified
+                if (result.data.allVerified) {
+                    setTimeout(() => {
+                        showPage('successPage');
+                    }, 1500);
+                }
+
+            } else {
+                showAlert('verificationAlert', 'error', result.message || `${type} verification failed`);
+            }
+        } catch (err) {
+            console.error(`${type} verification error:`, err);
+            showAlert('verificationAlert', 'error', 'Network error. Please try again.');
+        } finally {
+            loadingDiv.style.display = 'none';
+            btn.disabled = false;
+        }
+    }
+
+    async function resendCode(type) {
+        if (!currentUserId) {
+            showAlert('verificationAlert', 'error', 'Invalid session. Please register again.');
+            return;
+        }
+
+        const btnId = `resend${type.charAt(0).toUpperCase() + type.slice(1)}Btn`;
+        const btn = document.getElementById(btnId);
+
+        btn.disabled = true;
+        btn.innerHTML = 'Sending...';
+
+        try {
+            const response = await fetch(`/api/v1/auth/resend/${type}/${currentUserId}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showAlert('verificationAlert', 'success', result.message);
+            } else {
+                showAlert('verificationAlert', 'error', result.message || `Failed to resend ${type} code`);
+            }
+        } catch (err) {
+            console.error(`Resend ${type} error:`, err);
+            showAlert('verificationAlert', 'error', 'Network error. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `Resend ${type.charAt(0).toUpperCase() + type.slice(1)} Code`;
+        }
+    }
+
+    function updateVerificationStatus(data) {
+        // Update email status
+        const emailIcon = document.getElementById('emailStatusIcon');
+        const emailStatus = document.getElementById('emailStatus');
+        if (data.emailVerified) {
+            emailIcon.className = 'status-icon status-verified';
+            emailIcon.textContent = '✅';
+            emailStatus.textContent = 'Verified';
+        }
+
+        // Phone verification is optional, no need to update phone status
+    }
+
+    function showPage(pageId) {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+
+        // Show target page
+        document.getElementById(pageId).classList.add('active');
+    }
+
+    function showAlert(containerId, type, message) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+    }
+
+    // Auto-format verification code inputs
+    document.querySelectorAll('.code-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+    });
+</script>
+</body>
+</html>

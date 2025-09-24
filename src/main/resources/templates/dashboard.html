@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f9f9f9; }
+        .container { margin: 50px auto; width: 600px; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+        .welcome { font-size: 1.2em; margin-bottom: 20px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Dashboard</h2>
+    <p class="welcome">Welcome, <span id="fullName">User</span>!</p>
+    <p>Email Verified: <span id="emailVerified">false</span></p>
+    <p>Phone Verified: <span id="phoneVerified">false</span></p>
+    <p class="error" id="error"></p>
+    <button id="logoutBtn">Logout</button>
+</div>
+
+<script>
+    const fullNameEl = document.getElementById('fullName');
+    const emailVerifiedEl = document.getElementById('emailVerified');
+    const phoneVerifiedEl = document.getElementById('phoneVerified');
+    const errorEl = document.getElementById('error');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Load user data using token
+    async function loadUserData() {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            errorEl.innerText = "No token found. Please login first.";
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/v1/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                fullNameEl.textContent = data.data.fullName;
+                emailVerifiedEl.textContent = data.data.emailVerified;
+                phoneVerifiedEl.textContent = data.data.phoneVerified;
+            } else {
+                errorEl.textContent = data.message || 'Failed to load user data.';
+            }
+        } catch (err) {
+            console.error(err);
+            errorEl.textContent = 'Unexpected error occurred while fetching user data.';
+        }
+    }
+
+    // Logout button
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+    });
+
+    // Load user data on page load
+    window.addEventListener('DOMContentLoaded', loadUserData);
+</script>
+</body>
+</html>

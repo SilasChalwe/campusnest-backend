@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Verify Phone</title></head>
+<body>
+<h1>Verify Phone</h1>
+<form th:action="@{/api/v1/auth/verify/phone}" method="post">
+    <label>Verification Code: <input type="text" name="code" required></label><br>
+    <button type="submit">Verify</button>
+</form>
+</body>
+</html>
