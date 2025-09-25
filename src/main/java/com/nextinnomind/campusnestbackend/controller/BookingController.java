@@ -41,9 +41,7 @@ public class BookingController {
     @GetMapping("/my-bookings")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Get student's bookings")
-    public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookings(
-            @CurrentUser UserPrincipal userPrincipal,
-            @PageableDefault(size = 20) Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookings(@CurrentUser UserPrincipal userPrincipal, @PageableDefault(size = 20) Pageable pageable) {
         Page<BookingResponse> bookings = bookingService.getUserBookings(userPrincipal.getId(), pageable);
         return ResponseEntity.ok(ApiResponse.success("Bookings retrieved successfully", bookings));
     }

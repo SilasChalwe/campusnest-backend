@@ -349,4 +349,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Property and booking management
 - Real-time chat and notifications
 - Payment integration
-- Admin panel features
+- Admin panel featuresfre 

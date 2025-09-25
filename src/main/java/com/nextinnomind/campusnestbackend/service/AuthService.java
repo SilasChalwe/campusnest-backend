@@ -56,10 +56,7 @@ public class AuthService {
         }
 
         // Create new user with unverified email, phone verification optional
-        User user = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .phone(request.getPhone())
+        User user = User.builder().fullName(request.getFullName()).email(request.getEmail()).phone(request.getPhone())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .emailVerified(false)
@@ -68,6 +65,7 @@ public class AuthService {
 
         user = userRepository.save(user);
         log.info("User registered with ID: {}", user.getId());
+        log.warn("user informations : "+user.toString());
 
         // Send only email verification
         sendEmailVerification(user);
@@ -264,8 +262,9 @@ public class AuthService {
         verificationTokenRepository.save(token);
 
         try {
-            emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
+          //  emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
             log.info("Email verification code sent to: {}", user.getEmail());
+            log.info("with code : {}",  code);
         } catch (Exception e) {
             log.error("Failed to send email verification to: {}", user.getEmail(), e);
             throw new BadRequestException("Failed to send verification email");

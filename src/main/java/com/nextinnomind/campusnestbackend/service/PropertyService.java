@@ -37,23 +37,43 @@ public class PropertyService {
     private final ReviewRepository reviewRepository;
     private final FileStorageService fileStorageService;
 
-    public Page<PropertyResponse> searchProperties(String query, Double lat, Double lng, Double radiusKm,
-                                                   BigDecimal minPrice, BigDecimal maxPrice, List<String> amenities,
-                                                   Pageable pageable) {
+    public Page<PropertyResponse> searchProperties(
+            String query,
+            String address,
+            Double lat,
+            Double lng,
+            Double radiusKm,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            List<String> amenities,
+            Pageable pageable) {
+
         Page<Property> properties;
 
+        // If coordinates are provided, search by radius
         if (lat != null && lng != null) {
             properties = propertyRepository.findPropertiesWithinRadius(lat, lng, radiusKm, pageable);
-        } else if (query != null || minPrice != null || maxPrice != null) {
-            properties = propertyRepository.searchProperties(query, minPrice, maxPrice, pageable);
-        } else if (amenities != null && !amenities.isEmpty()) {
+        }
+        // Search by keywords, address, and price range
+        else if ((query != null && !query.isEmpty()) ||
+                (address != null && !address.isEmpty()) ||
+                minPrice != null || maxPrice != null) {
+            properties = propertyRepository.searchProperties(query, address, minPrice, maxPrice, pageable);
+        }
+        // Search by amenities
+        else if (amenities != null && !amenities.isEmpty()) {
             properties = propertyRepository.findByAmenitiesIn(amenities, pageable);
-        } else {
+        }
+        // Default: return all active properties
+        else {
             properties = propertyRepository.findByStatus(PropertyStatus.ACTIVE, pageable);
         }
 
         return properties.map(this::convertToResponse);
     }
+
+
+
 
     @Transactional(readOnly = true)
     public PropertyResponse getPropertyById(Long id) {
@@ -61,8 +81,9 @@ public class PropertyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with id: " + id));
 
         // Increment view count
-        property.setViewCount(property.getViewCount() + 1);
+        property.setViewCount(property.getViewCount() == null ? 1 : property.getViewCount() + 1);
         propertyRepository.save(property);
+
 
         return convertToResponse(property);
     }
@@ -133,8 +154,10 @@ public class PropertyService {
             throw new BadRequestException("You can only delete your own properties");
         }
 
-        property.setStatus(PropertyStatus.INACTIVE);
-        propertyRepository.save(property);
+//        property.setStatus(PropertyStatus.INACTIVE); is soft delete
+//        propertyRepository.save(property);
+        propertyRepository.delete(property);
+        log.info("Hard-deleted property: {} by user: {}", id, userPrincipal.getId());
         log.info("Deleted property: {} by user: {}", id, userPrincipal.getId());
     }
 

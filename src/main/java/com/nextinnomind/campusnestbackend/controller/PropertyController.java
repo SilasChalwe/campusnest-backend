@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -29,17 +30,39 @@ import java.util.List;
 public class PropertyController {
 
     private final PropertyService propertyService;
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('LANDLORD')")
     @Operation(summary = "Create new property")
-    public ResponseEntity<ApiResponse<PropertyResponse>> createProperty(
+    public ResponseEntity<ApiResponse<List<PropertyResponse>>> createProperty(
             @CurrentUser UserPrincipal userPrincipal,
             @ModelAttribute @Valid CreatePropertyRequest request,
-            @RequestParam("images") List<MultipartFile> images) {
-        PropertyResponse response = propertyService.createProperty(request, images, userPrincipal.getId());
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+
+        List<PropertyResponse> createdProperties = new ArrayList<>();
+
+        // ---------- AUTO-CREATE 5 TEST PROPERTIES ----------
+        for (int i = 1; i <= 5; i++) {
+            CreatePropertyRequest testRequest = new CreatePropertyRequest();
+            testRequest.setTitle("Test Property " + i + " - " + System.currentTimeMillis());
+            testRequest.setDescription("This is auto-generated property #" + i + " for testing.");
+            testRequest.setAddress("123 Test Lane #" + i);
+            testRequest.setLatitude(-15.4167 + i * 0.001);
+            testRequest.setLongitude(28.2833 + i * 0.001);
+            testRequest.setBasePrice(BigDecimal.valueOf(500 + i * 100));
+            testRequest.setCurrency("USD");
+            testRequest.setAmenities(List.of("WiFi", "Parking", "Pool"));
+            testRequest.setAvailableFrom(java.time.LocalDate.now());
+
+            // images can be empty for testing
+            List<MultipartFile> testImages = images != null ? images : new ArrayList<>();
+
+            PropertyResponse response = propertyService.createProperty(testRequest, testImages, userPrincipal.getId());
+            createdProperties.add(response);
+        }
+        // ----------------------------------------------------
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Property created successfully", response));
+                .body(ApiResponse.success("5 test properties created successfully", createdProperties));
     }
 
     @GetMapping
@@ -47,17 +70,20 @@ public class PropertyController {
     public ResponseEntity<ApiResponse<Page<PropertyResponse>>> searchProperties(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) BigDecimal maxPrice, // change to BigDecimal
             @RequestParam(required = false) String address,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
             @RequestParam(required = false) Double radiusKm,
             @RequestParam(required = false) List<String> amenities,
             @PageableDefault(size = 20) Pageable pageable) {
+
         Page<PropertyResponse> properties = propertyService.searchProperties(
-                query, lat, lng, radiusKm, minPrice, BigDecimal.valueOf(maxPrice), amenities, pageable);
+                query, address, lat, lng, radiusKm, minPrice, maxPrice, amenities, pageable);
+
         return ResponseEntity.ok(ApiResponse.success("Properties retrieved successfully", properties));
     }
+
 
     @GetMapping("/{id}")
     @Operation(summary = "Get property details")

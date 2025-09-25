@@ -1,7 +1,6 @@
 package com.nextinnomind.campusnestbackend.security;
 
 import com.nextinnomind.campusnestbackend.entity.User;
-import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,12 +8,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
-@AllArgsConstructor
-public class UserPrincipal implements UserDetails {
+public record UserPrincipal(User user) implements UserDetails {
 
-    private final User user;
-
-    // ✅ expose the ID correctly
     public Long getId() {
         return user.getId();
     }

@@ -1,16 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <title>Property Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f9f9f9; }
-        .container { margin: 50px auto; width: 600px; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
-        .welcome { font-size: 1.2em; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; background:#f9f9f9; padding:20px;}
+        .container { max-width:900px; margin:auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+        h2 { border-bottom:1px solid #ddd; padding-bottom:5px;}
+        input,textarea,button,select { margin-bottom:10px; width:100%; padding:8px;}
+        .property-card {border:1px solid #ddd; padding:10px; margin:5px 0; border-radius:5px;}
+        .welcome { font-size: 1.2em; margin-bottom: 10px; }
         .error { color: red; }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h2>Dashboard</h2>
     <p class="welcome">Welcome, <span id="fullName">User</span>!</p>
@@ -20,27 +24,58 @@
     <button id="logoutBtn">Logout</button>
 </div>
 
+<div class="container">
+    <h2>Create Property</h2>
+    <form id="propForm">
+        <input type="text" name="title" placeholder="Title" required>
+        <textarea name="description" placeholder="Description"></textarea>
+        <input type="text" name="address" placeholder="Address" required>
+        <input type="text" name="latitude" placeholder="Latitude" required>
+        <input type="text" name="longitude" placeholder="Longitude" required>
+        <input type="number" name="basePrice" placeholder="Base Price" required>
+        <input type="text" name="currency" placeholder="Currency" value="USD">
+        <input type="text" name="amenities" placeholder="Amenities (comma separated)">
+        <input type="date" name="availableFrom">
+        <button type="submit" id="add">Add Property</button>
+    </form>
+
+    <h2>Search Properties</h2>
+    <form id="searchForm">
+        <input type="text" name="query" placeholder="Keyword">
+        <input type="text" name="address" placeholder="Address">
+        <input type="number" name="minPrice" placeholder="Min Price">
+        <input type="number" name="maxPrice" placeholder="Max Price">
+        <input type="text" name="lat" placeholder="Latitude">
+        <input type="text" name="lng" placeholder="Longitude">
+        <input type="number" name="radiusKm" placeholder="Radius (Km)">
+        <input type="text" name="amenities" placeholder="Amenities (comma separated)">
+        <button type="submit">Search</button>
+    </form>
+    <div id="searchResults"></div>
+
+    <h2>My Properties</h2>
+    <button id="loadMyProps">Load My Properties</button>
+    <div id="myProps"></div>
+</div>
+
 <script>
+    const token = localStorage.getItem('accessToken');
     const fullNameEl = document.getElementById('fullName');
     const emailVerifiedEl = document.getElementById('emailVerified');
     const phoneVerifiedEl = document.getElementById('phoneVerified');
     const errorEl = document.getElementById('error');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Load user data using token
     async function loadUserData() {
-        const token = localStorage.getItem('accessToken');
         if (!token) {
             errorEl.innerText = "No token found. Please login first.";
             return;
         }
-
         try {
             const response = await fetch('/api/v1/users/me', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-
             if (response.ok && data.success) {
                 fullNameEl.textContent = data.data.fullName;
                 emailVerifiedEl.textContent = data.data.emailVerified;
@@ -54,13 +89,101 @@
         }
     }
 
-    // Logout button
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('accessToken');
         window.location.href = '/login';
     });
 
-    // Load user data on page load
+    document.getElementById('propForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        if (!token) { alert("No token"); return; }
+        const form = e.target;
+        const fd = new FormData(form);
+        const addBtn = document.getElementById('add');
+        addBtn.disabled = true; addBtn.textContent='Adding...';
+        try {
+            const resp = await fetch('/api/v1/properties', {
+                method:'POST',
+                headers:{'Authorization':'Bearer '+token},
+                body:fd
+            });
+            const json = await resp.json();
+            alert(json.message);
+            form.reset();
+        } catch (err) {
+            console.error(err);
+            alert('Network error');
+        } finally {
+            addBtn.disabled=false; addBtn.textContent='Add Property';
+        }
+    });
+
+    // Updated search handler to send all parameters
+    document.getElementById('searchForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                // For amenities, convert comma separated string to multiple params
+                if (key === 'amenities') {
+                    value.split(',').map(a => a.trim()).forEach(a => params.append('amenities', a));
+                } else {
+                    params.append(key, value);
+                }
+            }
+        }
+
+        try {
+            const resp = await fetch('/api/v1/properties?' + params.toString());
+            const json = await resp.json();
+            renderProperties(json.data.content || [], document.getElementById('searchResults'));
+        } catch (err) {
+            console.error(err);
+            errorEl.textContent = 'Failed to fetch properties.';
+        }
+    });
+
+    document.getElementById('loadMyProps').addEventListener('click', async ()=>{
+        const resp = await fetch('/api/v1/properties/my-properties', {
+            headers:{'Authorization':'Bearer '+token}
+        });
+        const json = await resp.json();
+        renderProperties(json.data.content || [], document.getElementById('myProps'), true);
+    });
+
+    function renderProperties(list, container, isOwner=false){
+        container.innerHTML='';
+        list.forEach(p=>{
+            const div=document.createElement('div');
+            div.className='property-card';
+            div.innerHTML=`
+                <strong>${p.title}</strong><br>${p.description||''}<br>
+                Price: ${p.basePrice} ${p.currency}<br>
+                <button onclick="viewProperty(${p.id})">View</button>
+                ${isOwner?`<button onclick="deleteProperty(${p.id})">Delete</button>`:''}
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    async function viewProperty(id){
+        const resp = await fetch('/api/v1/properties/'+id);
+        const json = await resp.json();
+        alert(JSON.stringify(json.data,null,2));
+    }
+
+    async function deleteProperty(id){
+        const resp = await fetch('/api/v1/properties/'+id,{
+            method:'DELETE',
+            headers:{'Authorization':'Bearer '+token}
+        });
+        const json = await resp.json();
+        alert(json.message);
+    }
+
     window.addEventListener('DOMContentLoaded', loadUserData);
 </script>
 </body>
